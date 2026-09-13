@@ -26,13 +26,14 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, session: SessionDep):  # type: ignore
-    existing = session.exec(select(User).where(User.email == user_in.email)).first()
+    email = user_in.email.strip().lower()
+    existing = session.exec(select(User).where(User.email == email)).first()
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
     db_user = User(
         name=user_in.name,
-        email=user_in.email,
+        email=email,
         password=hash_password(user_in.password),  #  hash before storing
         role="user",  #  role is never taken from client input
     )
@@ -49,7 +50,7 @@ def login(
     session: SessionDep,  
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
 ) -> Token:
-    user = authenticate_user(session, form_data.username, form_data.password)
+    user = authenticate_user(session, form_data.username.strip().lower(), form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

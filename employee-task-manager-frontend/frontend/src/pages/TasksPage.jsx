@@ -20,6 +20,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 import ChecklistIcon from '@mui/icons-material/ChecklistRtl'
 
 import { listTasks, createTask, updateTask, deleteTask } from '../api/tasks.js'
+import { listUsers } from '../api/users.js'
 import { errorMessage } from '../api/client.js'
 import StatusChip from '../components/StatusChip.jsx'
 import TaskFormDialog from '../components/TaskFormDialog.jsx'
@@ -34,8 +35,9 @@ const FILTERS = [
 ]
 
 export default function TasksPage() {
-  const { isManager } = useAuth()
+  const { isManager, user: currentUser } = useAuth()
   const [tasks, setTasks] = useState([])
+  const [employees, setEmployees] = useState([])
   const [filter, setFilter] = useState('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -62,6 +64,15 @@ export default function TasksPage() {
     load(filter)
   }, [filter, load])
 
+  useEffect(() => {
+    if (!isManager) return
+    listUsers()
+      .then((users) =>
+        setEmployees(users.filter((user) => user.role !== 'manager' || user.id === currentUser?.id)),
+      )
+      .catch((err) => setError(errorMessage(err, 'Could not load employees.')))
+  }, [isManager, currentUser?.id])
+
   const openCreate = () => {
     setEditingTask(null)
     setFormOpen(true)
@@ -73,11 +84,15 @@ export default function TasksPage() {
   }
 
   const handleFormSubmit = async (form) => {
+    const payload = {
+      ...form,
+      assignee_id: form.assignee_id ? Number(form.assignee_id) : undefined,
+    }
     if (editingTask) {
-      const updated = await updateTask(editingTask.id, form)
+      const updated = await updateTask(editingTask.id, payload)
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)))
     } else {
-      const created = await createTask(form)
+      const created = await createTask(payload)
       setTasks((prev) => [created, ...prev])
     }
     setFormOpen(false)
@@ -106,9 +121,9 @@ export default function TasksPage() {
     <Box>
       <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ sm: 'center' }} spacing={2} sx={{ mb: 3 }}>
         <Box>
-          <Typography variant="h4">{isManager ? 'All tasks' : 'My tasks'}</Typography>
+          <Typography variant="h4">{isManager ? 'My and assigned tasks' : 'My tasks'}</Typography>
           <Typography variant="body2" color="text.secondary">
-            {isManager ? 'Everything the team is working on.' : 'What you own right now.'}
+            {isManager ? 'Your tasks and tasks you assigned to employees.' : 'What you own right now.'}
           </Typography>
         </Box>
         <Button variant="contained" disableElevation startIcon={<AddIcon />} onClick={openCreate}>
@@ -182,7 +197,7 @@ export default function TasksPage() {
                         <StatusChip status={task.status} />
                         {isManager && (
                           <Typography variant="caption" color="text.secondary">
-                            #{task.user_id}
+                            {task.user_id === currentUser?.id ? 'Your task' : `Assigned to #${task.user_id}`}
                           </Typography>
                         )}
                       </Stack>
@@ -207,6 +222,8 @@ export default function TasksPage() {
         task={editingTask}
         onClose={() => setFormOpen(false)}
         onSubmit={handleFormSubmit}
+        isManager={isManager}
+        employees={employees}
       />
 
       <ConfirmDialog

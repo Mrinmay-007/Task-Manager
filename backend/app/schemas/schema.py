@@ -54,16 +54,18 @@ class UserUpdate(SQLModel):
 
 
 class TaskCreate(TaskBase):
-    pass
+    assignee_id: Optional[int] = None
 
 
 class TaskUpdate(SQLModel):
     title: Optional[str] = None
     description: Optional[str] = None
     status: Optional[TaskStatus] = None
+    assignee_id: Optional[int] = None
 
 
 class TaskRead(TaskBase):
     id: int
     user_id: int
+    creator_id: Optional[int] = None
     created_at: datetime.datetime
