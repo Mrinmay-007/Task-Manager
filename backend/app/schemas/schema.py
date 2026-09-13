@@ -1,0 +1,69 @@
+
+# app/schemas/schema.py
+from enum import Enum
+from typing import Optional
+from sqlmodel import Field, SQLModel  
+import datetime
+
+
+class TaskStatus(str, Enum):
+    pending = "pending"
+    in_progress = "in_progress"
+    completed = "completed"
+
+
+class UserBase(SQLModel):
+    name: str = Field(max_length=100)
+    email: str = Field(unique=True, index=True, max_length=255)
+    role: str = Field(default="user", max_length=50)
+    disabled: bool = Field(default=False)
+
+
+class TaskBase(SQLModel):
+    title: str = Field(max_length=200)
+    description: Optional[str] = Field(default=None, max_length=2000)
+    status: TaskStatus = Field(default=TaskStatus.pending)
+
+
+class Token(SQLModel):
+    access_token: str
+    token_type: str
+
+
+class TokenData(SQLModel):
+    email: Optional[str] = None
+    role: Optional[str] = None
+
+
+class UserCreate(UserBase):
+    password: str = Field(max_length=255)
+
+
+class UserRead(UserBase):
+
+    id: int
+    created_at: datetime.datetime
+
+
+class UserUpdate(SQLModel):
+    name: Optional[str] = None
+    email: Optional[str] = None
+
+
+# --- Task I/O schemas -------------------------------------------------
+
+
+class TaskCreate(TaskBase):
+    pass
+
+
+class TaskUpdate(SQLModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    status: Optional[TaskStatus] = None
+
+
+class TaskRead(TaskBase):
+    id: int
+    user_id: int
+    created_at: datetime.datetime
