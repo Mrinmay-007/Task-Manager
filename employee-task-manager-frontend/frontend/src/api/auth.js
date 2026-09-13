@@ -5,7 +5,8 @@ import client from './client.js'
 // (username is the email here).
 export async function login(email, password) {
   const body = new URLSearchParams()
-  body.set('username', email)
+  // body.set('username', email)
+  body.set('username', email.trim().toLowerCase())
   body.set('password', password)
   const { data } = await client.post('/auth/login', body, {
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

@@ -7,7 +7,7 @@ from sqlmodel import select
 
 from ..models.model import User
 from ..database.dependency import SessionDep
-from ..schemas.schema import UserRead, UserUpdate
+from ..schemas.schema import UserRead, UserUpdate, UserRoleUpdate
 from ..auth.authentication import get_current_active_user, require_manager
 
 router = APIRouter(prefix="/user", tags=["Users"])
@@ -76,3 +76,35 @@ def delete_user(user_id: int, session: SessionDep):
     session.delete(user)
     session.commit()
     return {"ok": True}
+
+
+# --- ROLE (manager-only) ---------------------------------------------------
+# ADDED: /auth/register always forces role="user" and PATCH /user/{id}
+# (UserUpdate) intentionally excludes role, so nothing lets a client hand
+# the server a role. This is the one legitimate way to promote someone to
+# manager (or demote a manager back to user) — manager-only, and a manager
+# can't change their own role here to avoid a manager accidentally locking
+# themselves out.
+@router.patch("/{user_id}/role", response_model=UserRead)
+def update_user_role(
+    user_id: int,
+    role_in: UserRoleUpdate,
+    session: SessionDep,
+    current_user: Annotated[User, Depends(require_manager)],
+):
+    role = role_in.role.strip().lower()
+    if role not in ("user", "manager"):
+        raise HTTPException(status_code=422, detail="role must be 'user' or 'manager'")
+    if user_id == current_user.id:
+        raise HTTPException(status_code=400, detail="You cannot change your own role")
+
+    target_user = session.get(User, user_id)
+    if not target_user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    target_user.role = role
+    session.add(target_user)
+    session.commit()
+    session.refresh(target_user)
+    return target_user
+

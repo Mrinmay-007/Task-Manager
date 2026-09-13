@@ -16,9 +16,12 @@ const STATUS_OPTIONS = [
   { value: 'completed', label: 'Completed' },
 ]
 
-const emptyForm = { title: '', description: '', status: 'pending' }
+// const emptyForm = { title: '', description: '', status: 'pending' }
+const emptyForm = { title: '', description: '', status: 'pending', assignee_id: '' }
 
-export default function TaskFormDialog({ open, task, onClose, onSubmit }) {
+export default function TaskFormDialog({ open, task, onClose, onSubmit, isManager, employees }) {
+
+// export default function TaskFormDialog({ open, task, onClose, onSubmit }) {
   const [form, setForm] = useState(emptyForm)
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -27,7 +30,12 @@ export default function TaskFormDialog({ open, task, onClose, onSubmit }) {
     if (open) {
       setForm(
         task
-          ? { title: task.title, description: task.description || '', status: task.status }
+             ? {
+              title: task.title,
+              description: task.description || '',
+              status: task.status,
+              assignee_id: task.user_id || '',
+            }
           : emptyForm,
       )
       setError('')
@@ -87,6 +95,21 @@ export default function TaskFormDialog({ open, task, onClose, onSubmit }) {
               </MenuItem>
             ))}
           </TextField>
+          {isManager && (
+            <TextField
+              label="Assign to"
+              select
+              value={form.assignee_id}
+              onChange={handleChange('assignee_id')}
+              fullWidth
+            >
+              {employees.map((employee) => (
+                <MenuItem key={employee.id} value={employee.id}>
+                  {employee.name} ({employee.email})
+                </MenuItem>
+              ))}
+            </TextField>
+          )}
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2 }}>

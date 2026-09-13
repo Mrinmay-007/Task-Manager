@@ -23,7 +23,7 @@ import TextField from '@mui/material/TextField'
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined'
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline'
 
-import { listUsers, updateUser, deleteUser } from '../api/users.js'
+import { listUsers, updateUser, updateUserRole, deleteUser } from '../api/users.js'
 import { errorMessage } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
 import ConfirmDialog from '../components/ConfirmDialog.jsx'
@@ -48,6 +48,9 @@ export default function UsersPage() {
   const [saving, setSaving] = useState(false)
   const [deleteTarget, setDeleteTarget] = useState(null)
   const [deleting, setDeleting] = useState(false)
+  // ADDED: which user's role change is in flight, for a small inline spinner
+  // state on that row's chip instead of a full-page loading state.
+  const [roleChangingId, setRoleChangingId] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -95,6 +98,21 @@ export default function UsersPage() {
       setError(errorMessage(err, 'Could not remove this person.'))
     } finally {
       setDeleting(false)
+    }
+  }
+
+  // ADDED: promote/demote via the new manager-only /user/{id}/role endpoint.
+  const handleToggleRole = async (u) => {
+    const nextRole = u.role === 'manager' ? 'user' : 'manager'
+    setRoleChangingId(u.id)
+    setError('')
+    try {
+      const updated = await updateUserRole(u.id, nextRole)
+      setUsers((prev) => prev.map((usr) => (usr.id === updated.id ? updated : usr)))
+    } catch (err) {
+      setError(errorMessage(err, "Could not change this person's role."))
+    } finally {
+      setRoleChangingId(null)
     }
   }
 
@@ -153,11 +171,18 @@ export default function UsersPage() {
                     </Typography>
                   </TableCell>
                   <TableCell>
-                    <Chip
-                      label={u.role === 'manager' ? 'Manager' : 'Employee'}
-                      size="small"
-                      color={u.role === 'manager' ? 'secondary' : 'default'}
-                    />
+                    <Tooltip title={u.id === me?.id ? "You can't change your own role here" : `Click to ${u.role === 'manager' ? 'demote to employee' : 'promote to manager'}`}>
+                      <span>
+                        <Chip
+                          label={u.role === 'manager' ? 'Manager' : 'Employee'}
+                          size="small"
+                          color={u.role === 'manager' ? 'secondary' : 'default'}
+                          onClick={u.id === me?.id ? undefined : () => handleToggleRole(u)}
+                          disabled={roleChangingId === u.id}
+                          clickable={u.id !== me?.id}
+                        />
+                      </span>
+                    </Tooltip>
                   </TableCell>
                   <TableCell align="right">
                     <Tooltip title="Edit">

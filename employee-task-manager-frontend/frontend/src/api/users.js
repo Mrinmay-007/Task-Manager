@@ -15,6 +15,12 @@ export async function updateUser(userId, payload) {
   return data
 }
 
+// ADDED: promote/demote a user's role. Manager-only on the backend.
+export async function updateUserRole(userId, role) {
+  const { data } = await client.patch(`/user/${userId}/role`, { role })
+  return data
+}
+
 export async function deleteUser(userId) {
   await client.delete(`/user/${userId}`)
 }

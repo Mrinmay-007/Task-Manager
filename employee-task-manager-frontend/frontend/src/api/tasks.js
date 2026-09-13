@@ -24,3 +24,8 @@ export async function updateTask(taskId, payload) {
 export async function deleteTask(taskId) {
   await client.delete(`/tasks/${taskId}`)
 }
+
+export async function requestTaskCompletion(taskId) {
+  const { data } = await client.post(`/tasks/${taskId}/request-completion`)
+  return data
+}
