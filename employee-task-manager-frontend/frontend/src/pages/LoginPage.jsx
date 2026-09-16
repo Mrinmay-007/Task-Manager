@@ -7,10 +7,16 @@ import Typography from '@mui/material/Typography'
 import Stack from '@mui/material/Stack'
 import Alert from '@mui/material/Alert'
 import Link from '@mui/material/Link'
+import Collapse from '@mui/material/Collapse'
 import ChecklistIcon from '@mui/icons-material/ChecklistRtl'
 import { useAuth } from '../context/AuthContext.jsx'
 import { errorMessage } from '../api/client.js'
 import AuthLayout from '../components/AuthLayout.jsx'
+
+// Update this text to change the instructions shown by the Manual option.
+const MANUAL_INSTRUCTION =
+  'For testing purposes, you can use the following credentials:\n\nEmail: admin@example.com\nPassword: 123456789\n\nIf you do not have an account, please register first.'
+
 
 export default function LoginPage() {
   const { login } = useAuth()
@@ -20,6 +26,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
+  const [showManual, setShowManual] = useState(false)
 
   const from = location.state?.from?.pathname || '/tasks'
 
@@ -92,6 +99,21 @@ export default function LoginPage() {
           <Button type="submit" variant="contained" size="large" disableElevation disabled={submitting}>
             {submitting ? 'Signing in…' : 'Sign in'}
           </Button>
+          <Button
+            type="button"
+            variant="text"
+            size="small"
+            onClick={() => setShowManual((visible) => !visible)}
+            aria-expanded={showManual}
+            aria-controls="manual-instructions"
+          >
+            Manual
+          </Button>
+          <Collapse in={showManual}>
+            <Alert id="manual-instructions" severity="info">
+              {MANUAL_INSTRUCTION}
+            </Alert>
+          </Collapse>
         </Stack>
       </Box>
 
